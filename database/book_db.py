@@ -1,11 +1,10 @@
 from pydantic import BaseModel
-from db_connection import get_connection
+from database.db_connection import get_connection
 
 class Book(BaseModel):
     title:str
     author:str
     genre:str
-
 
 class BookDB:
     # def __init__(self, title, author, genre):

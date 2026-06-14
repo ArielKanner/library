@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from db_connection import get_connection
+from database.db_connection import get_connection
 
 class Member(BaseModel):
     name:str
