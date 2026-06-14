@@ -1,21 +1,19 @@
 from pydantic import BaseModel
-from database.db_connection import get_connection
+from database.db_connection import DbConnection
+
+db_conn = DbConnection()
 
 class Book(BaseModel):
-    title:str
-    author:str
-    genre:str
+    title:str | None=None
+    author:str | None=None
+    genre:str|None=None
 
 class BookDB:
-    # def __init__(self, title, author, genre):
     def __init__(self):
-        # self.title = title
-        # self.author = author
-        # self.genre = genre
         pass
 
     def create_book(self, data:Book):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         sql = 'INSERT INTO books (title, author, genre) VALUES (%s,%s,%s)'
@@ -28,7 +26,7 @@ class BookDB:
         conn.close()
 
     def get_all_books(self):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute('select * from books')
@@ -39,7 +37,7 @@ class BookDB:
         return rows
     
     def get_book_by_id(self, id):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute('select * from books WHERE id = %s', (id,))
@@ -49,8 +47,24 @@ class BookDB:
         conn.close()
         return row
     
+    def update_book(self, id, data:Book):
+        conn = db_conn.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        data = data.model_dump()
+        part_of_sql = [f'{key} = %s' for key in data.keys()]
+        part_of_sql = ', '.join(part_of_sql)
+        sql = f'UPDATE books SET {part_of_sql} WHERE id = %s'
+        values = list(data.values()) + [id]
+
+        cursor.execute(sql, values)
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+    
     def set_available(self, id, val, member_id):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         if val in [0, None]:
@@ -70,7 +84,7 @@ class BookDB:
         return is_changed
     
     def count_total_books(self):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute('SELECT COUNT(*) FROM books')
@@ -81,7 +95,7 @@ class BookDB:
         return rows[0]['COUNT(*)']
     
     def count_available_books(self):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute('SELECT COUNT(*) FROM books WHERE is_available = 1')
@@ -92,7 +106,7 @@ class BookDB:
         return rows[0]['COUNT(*)']
     
     def count_borrowed_books(self):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute('SELECT COUNT(*) FROM books WHERE is_available = 0')
@@ -103,7 +117,7 @@ class BookDB:
         return rows[0]['COUNT(*)']
     
     def count_by_genre(self, genre):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute('SELECT COUNT(*) FROM books WHERE genre = %s', (genre,))
@@ -114,7 +128,7 @@ class BookDB:
         return rows[0]['COUNT(*)']
     
     def count_active_borrows_by_member(self, member_id):
-        conn = get_connection()
+        conn = db_conn.get_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute('SELECT COUNT(*) FROM books WHERE borrowed_by_member_id = %s', (member_id,))
@@ -130,6 +144,13 @@ bdb= BookDB()
 # data = Book(**data)
 # bdb.create_book(data)
 
-print(bdb.set_available(9, 0, 67))
+# print(bdb.get_all_books())
+# print(bdb.count_by_genre('non-fiction'))
 
+# data = {'genre': 'history'}
+# data = Book(**data)
+# bdb.update_book(6, data)
+
+print(bdb.count_by_genre('history'))
+# python -m database.book_db
  
